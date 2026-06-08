@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Layout, SectionHeader } from "@/components/layout";
+import { Layout, SectionHeader } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
