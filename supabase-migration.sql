@@ -1,6 +1,9 @@
 -- EduPress Learning — Supabase schema + seed data
 -- Run this entire script in your Supabase project:
 -- Dashboard → SQL Editor → New query → paste → Run
+--
+-- Supabase Project: ajhrqbtlllmmdveorbcw
+-- URL: https://ajhrqbtlllmmdveorbcw.supabase.co
 
 -- ────────────────────────────────────────────
 -- 1. TABLES
@@ -69,19 +72,39 @@ alter table subjects      enable row level security;
 alter table video_lessons enable row level security;
 alter table worksheets    enable row level security;
 
-create policy "public read series"        on series        for select using (true);
-create policy "public read class_levels"  on class_levels  for select using (true);
-create policy "public read subjects"      on subjects      for select using (true);
-create policy "public read video_lessons" on video_lessons for select using (true);
-create policy "public read worksheets"    on worksheets    for select using (true);
-
--- Admin write policies (allows INSERT / UPDATE / DELETE via the anon key)
--- These are needed for the EduPress Admin web panel.
-create policy "admin write series"        on series        for all using (true) with check (true);
-create policy "admin write class_levels"  on class_levels  for all using (true) with check (true);
-create policy "admin write subjects"      on subjects      for all using (true) with check (true);
-create policy "admin write video_lessons" on video_lessons for all using (true) with check (true);
-create policy "admin write worksheets"    on worksheets    for all using (true) with check (true);
+-- Safe idempotent policy creation
+do $$ begin
+  if not exists (select 1 from pg_policies where tablename='series' and policyname='public read series') then
+    create policy "public read series" on series for select using (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename='class_levels' and policyname='public read class_levels') then
+    create policy "public read class_levels" on class_levels for select using (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename='subjects' and policyname='public read subjects') then
+    create policy "public read subjects" on subjects for select using (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename='video_lessons' and policyname='public read video_lessons') then
+    create policy "public read video_lessons" on video_lessons for select using (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename='worksheets' and policyname='public read worksheets') then
+    create policy "public read worksheets" on worksheets for select using (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename='series' and policyname='admin write series') then
+    create policy "admin write series" on series for all using (true) with check (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename='class_levels' and policyname='admin write class_levels') then
+    create policy "admin write class_levels" on class_levels for all using (true) with check (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename='subjects' and policyname='admin write subjects') then
+    create policy "admin write subjects" on subjects for all using (true) with check (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename='video_lessons' and policyname='admin write video_lessons') then
+    create policy "admin write video_lessons" on video_lessons for all using (true) with check (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename='worksheets' and policyname='admin write worksheets') then
+    create policy "admin write worksheets" on worksheets for all using (true) with check (true);
+  end if;
+end $$;
 
 -- ────────────────────────────────────────────
 -- 3. SEED DATA
@@ -130,13 +153,13 @@ on conflict (id) do nothing;
 
 -- Video Lessons
 insert into video_lessons (id, subject_id, title, description, duration, video_url, video_type, chapter_number) values
-  ('v1', 'sub1', 'Introduction to Algebra',      'Learn the basics of algebraic expressions and variables',        '12:30', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'youtube', 1),
-  ('v2', 'sub1', 'Linear Equations',             'Solving simple and compound linear equations step by step',      '18:45', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'youtube', 2),
-  ('v3', 'sub1', 'Ratio and Proportion',          'Understanding ratios, rates and direct/inverse proportion',      '15:20', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'youtube', 3),
-  ('v4', 'sub1', 'Geometry Basics',              'Lines, angles and triangles fundamentals',                       '20:10', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'youtube', 4),
-  ('v5', 'sub1', 'Data Handling',                'Bar graphs, pie charts and basic statistics',                    '14:55', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'youtube', 5),
-  ('v6', 'sub2', 'Motion and Measurement',        'Types of motion and basic units of measurement',                '16:00', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'youtube', 1),
-  ('v7', 'sub2', 'Food: Where Does it Come From?','Plant and animal sources of food, photosynthesis basics',       '13:40', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'youtube', 2)
+  ('v1', 'sub1', 'Introduction to Algebra',       'Learn the basics of algebraic expressions and variables',        '12:30', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'youtube', 1),
+  ('v2', 'sub1', 'Linear Equations',              'Solving simple and compound linear equations step by step',      '18:45', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'youtube', 2),
+  ('v3', 'sub1', 'Ratio and Proportion',           'Understanding ratios, rates and direct/inverse proportion',      '15:20', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'youtube', 3),
+  ('v4', 'sub1', 'Geometry Basics',               'Lines, angles and triangles fundamentals',                       '20:10', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'youtube', 4),
+  ('v5', 'sub1', 'Data Handling',                 'Bar graphs, pie charts and basic statistics',                    '14:55', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'youtube', 5),
+  ('v6', 'sub2', 'Motion and Measurement',         'Types of motion and basic units of measurement',                '16:00', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'youtube', 1),
+  ('v7', 'sub2', 'Food: Where Does it Come From?','Plant and animal sources of food, photosynthesis basics',        '13:40', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'youtube', 2)
 on conflict (id) do nothing;
 
 -- Worksheets
