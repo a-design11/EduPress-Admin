@@ -7,6 +7,7 @@ import {
   ChevronRight,
   LogOut,
   User,
+  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -16,6 +17,7 @@ import { Button } from "@/components/ui/button";
 const nav = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/series", label: "Series", icon: BookOpen },
+  { href: "/users", label: "Users", icon: Users },
 ];
 
 interface LayoutProps {

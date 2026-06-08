@@ -169,3 +169,28 @@ insert into worksheets (id, subject_id, title, description, file_url, pages, top
   ('w3', 'sub1', 'Geometry Exercise Set',       'Angles, triangles and quadrilaterals problems',     'https://www.w3.org/WAI/WCAG21/Techniques/pdf/pdf-sample.pdf', 5, 'Geometry'),
   ('w4', 'sub2', 'Science Activity Sheet 1',    'Observation-based activities for motion study',     'https://www.w3.org/WAI/WCAG21/Techniques/pdf/pdf-sample.pdf', 3, 'Motion')
 on conflict (id) do nothing;
+
+-- ────────────────────────────────────────────
+-- 4. DELETED USERS AUDIT TABLE
+-- ────────────────────────────────────────────
+
+create table if not exists deleted_users (
+  id             uuid primary key default gen_random_uuid(),
+  user_id        uuid not null,
+  user_email     text,
+  user_name      text,
+  deleted_by     uuid not null,
+  deleted_by_email text,
+  deleted_at     timestamptz default now()
+);
+
+alter table deleted_users enable row level security;
+
+do $$ begin
+  if not exists (select 1 from pg_policies where tablename='deleted_users' and policyname='admin read deleted_users') then
+    create policy "admin read deleted_users" on deleted_users for select using (true);
+  end if;
+  if not exists (select 1 from pg_policies where tablename='deleted_users' and policyname='admin write deleted_users') then
+    create policy "admin write deleted_users" on deleted_users for insert with check (true);
+  end if;
+end $$;

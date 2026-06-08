@@ -10,6 +10,9 @@ import SubjectsPage from "@/pages/subjects";
 import VideosPage from "@/pages/videos";
 import WorksheetsPage from "@/pages/worksheets";
 import LoginPage from "@/pages/login";
+import ForgotPasswordPage from "@/pages/forgot-password";
+import ResetPasswordPage from "@/pages/reset-password";
+import UsersPage from "@/pages/users";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 
 const queryClient = new QueryClient({
@@ -41,12 +44,15 @@ function Router() {
   return (
     <Switch>
       <Route path="/login" component={LoginPage} />
+      <Route path="/forgot-password" component={ForgotPasswordPage} />
+      <Route path="/reset-password" component={ResetPasswordPage} />
       <Route path="/" component={() => <ProtectedRoute component={Dashboard} />} />
       <Route path="/series" component={() => <ProtectedRoute component={SeriesPage} />} />
       <Route path="/series/:seriesId/classes" component={() => <ProtectedRoute component={ClassesPage} />} />
       <Route path="/classes/:classId/subjects" component={() => <ProtectedRoute component={SubjectsPage} />} />
       <Route path="/subjects/:subjectId/videos" component={() => <ProtectedRoute component={VideosPage} />} />
       <Route path="/subjects/:subjectId/worksheets" component={() => <ProtectedRoute component={WorksheetsPage} />} />
+      <Route path="/users" component={() => <ProtectedRoute component={UsersPage} />} />
       <Route component={NotFound} />
     </Switch>
   );
