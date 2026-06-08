@@ -3,13 +3,15 @@ import {
   LayoutDashboard,
   BookOpen,
   GraduationCap,
-  FlaskConical,
-  Video,
   FileText,
   ChevronRight,
+  LogOut,
+  User,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
 
 const nav = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -23,6 +25,10 @@ interface LayoutProps {
 
 export function Layout({ children, breadcrumbs }: LayoutProps) {
   const [location] = useLocation();
+  const { user, signOut } = useAuth();
+
+  const displayName = user?.user_metadata?.full_name ?? user?.email?.split("@")[0] ?? "Admin";
+  const displayEmail = user?.email ?? "";
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
@@ -48,7 +54,6 @@ export function Layout({ children, breadcrumbs }: LayoutProps) {
                 <Link
                   key={href}
                   href={href}
-                  data-testid={`nav-link-${label.toLowerCase()}`}
                   className={cn(
                     "flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium transition-colors",
                     active
@@ -73,26 +78,38 @@ export function Layout({ children, breadcrumbs }: LayoutProps) {
           </div>
         </ScrollArea>
 
-        <div className="px-5 py-3 border-t border-sidebar-border">
-          <p className="text-xs text-muted-foreground">
-            EduPress Admin v1.0
-          </p>
+        {/* User footer */}
+        <div className="px-4 py-3 border-t border-sidebar-border space-y-2">
+          <div className="flex items-center gap-2 px-1">
+            <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+              <User className="w-3.5 h-3.5 text-primary" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-sidebar-foreground truncate">{displayName}</p>
+              <p className="text-[10px] text-muted-foreground truncate">{displayEmail}</p>
+            </div>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full justify-start gap-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 h-8 px-2"
+            onClick={signOut}
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            Sign Out
+          </Button>
         </div>
       </aside>
 
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Top bar */}
         {breadcrumbs && breadcrumbs.length > 0 && (
           <header className="h-12 border-b border-border bg-background flex items-center px-6 gap-1.5 flex-shrink-0">
             {breadcrumbs.map((crumb, i) => (
               <span key={i} className="flex items-center gap-1.5">
                 {i > 0 && <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />}
                 {crumb.href ? (
-                  <Link
-                    href={crumb.href}
-                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                  >
+                  <Link href={crumb.href} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                     {crumb.label}
                   </Link>
                 ) : (
@@ -102,59 +119,28 @@ export function Layout({ children, breadcrumbs }: LayoutProps) {
             ))}
           </header>
         )}
-
-        <main className="flex-1 overflow-auto p-6">
-          {children}
-        </main>
+        <main className="flex-1 overflow-auto p-6">{children}</main>
       </div>
     </div>
   );
 }
 
-export function SectionHeader({
-  title,
-  description,
-  action,
-}: {
-  title: string;
-  description?: string;
-  action?: React.ReactNode;
-}) {
+export function SectionHeader({ title, description, action }: { title: string; description?: string; action?: React.ReactNode }) {
   return (
     <div className="flex items-start justify-between mb-5">
       <div>
         <h1 className="text-xl font-semibold text-foreground">{title}</h1>
-        {description && (
-          <p className="text-sm text-muted-foreground mt-0.5">{description}</p>
-        )}
+        {description && <p className="text-sm text-muted-foreground mt-0.5">{description}</p>}
       </div>
       {action && <div>{action}</div>}
     </div>
   );
 }
 
-export function StatCard({
-  label,
-  value,
-  icon: Icon,
-  href,
-  color,
-}: {
-  label: string;
-  value: number | string;
-  icon: React.ElementType;
-  href?: string;
-  color?: string;
-}) {
+export function StatCard({ label, value, icon: Icon, href, color }: { label: string; value: number | string; icon: React.ElementType; href?: string; color?: string }) {
   const inner = (
-    <div
-      className="bg-card border border-card-border rounded-lg p-4 flex items-center gap-4 hover:bg-accent/30 transition-colors cursor-pointer"
-      data-testid={`stat-card-${label.toLowerCase().replace(/\s+/g, "-")}`}
-    >
-      <div
-        className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-        style={{ backgroundColor: color ? `${color}20` : undefined }}
-      >
+    <div className="bg-card border border-card-border rounded-lg p-4 flex items-center gap-4 hover:bg-accent/30 transition-colors cursor-pointer">
+      <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: color ? `${color}20` : undefined }}>
         <Icon className="w-5 h-5" style={{ color: color }} />
       </div>
       <div>
@@ -177,22 +163,13 @@ export function EmptyState({ message }: { message: string }) {
   );
 }
 
-export function SearchBar({
-  value,
-  onChange,
-  placeholder,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-}) {
+export function SearchBar({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder?: string }) {
   return (
     <input
       type="search"
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder ?? "Search..."}
-      data-testid="search-input"
       className="w-full max-w-xs h-8 px-3 text-sm rounded-md border border-input bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
     />
   );
