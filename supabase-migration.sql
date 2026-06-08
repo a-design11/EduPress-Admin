@@ -1,9 +1,6 @@
 -- EduPress Learning — Supabase schema + seed data
 -- Run this entire script in your Supabase project:
 -- Dashboard → SQL Editor → New query → paste → Run
---
--- Supabase Project: ajhrqbtlllmmdveorbcw
--- URL: https://ajhrqbtlllmmdveorbcw.supabase.co
 
 -- ────────────────────────────────────────────
 -- 1. TABLES
@@ -13,6 +10,7 @@ create table if not exists series (
   id            text primary key,
   title         text not null,
   description   text,
+  thumbnail     text,
   class_count   int  default 0,
   video_count   int  default 0,
   total_duration text,
@@ -63,7 +61,7 @@ create table if not exists worksheets (
 );
 
 -- ────────────────────────────────────────────
--- 2. ROW LEVEL SECURITY (public read)
+-- 2. ROW LEVEL SECURITY
 -- ────────────────────────────────────────────
 
 alter table series        enable row level security;
@@ -72,7 +70,7 @@ alter table subjects      enable row level security;
 alter table video_lessons enable row level security;
 alter table worksheets    enable row level security;
 
--- Safe idempotent policy creation
+-- Public read for all authenticated users (students can read content)
 do $$ begin
   if not exists (select 1 from pg_policies where tablename='series' and policyname='public read series') then
     create policy "public read series" on series for select using (true);
@@ -89,20 +87,40 @@ do $$ begin
   if not exists (select 1 from pg_policies where tablename='worksheets' and policyname='public read worksheets') then
     create policy "public read worksheets" on worksheets for select using (true);
   end if;
+
+  -- FIXED: Admin write policies now check for 'admin' role in JWT claims.
+  -- To grant admin access: update the user's raw_app_meta_data in Supabase Auth
+  -- e.g.  update auth.users set raw_app_meta_data = raw_app_meta_data || '{"role":"admin"}'
+  --       where email = 'admin@yourschool.com';
   if not exists (select 1 from pg_policies where tablename='series' and policyname='admin write series') then
-    create policy "admin write series" on series for all using (true) with check (true);
+    create policy "admin write series" on series
+      for all
+      using ((auth.jwt() ->> 'role') = 'admin')
+      with check ((auth.jwt() ->> 'role') = 'admin');
   end if;
   if not exists (select 1 from pg_policies where tablename='class_levels' and policyname='admin write class_levels') then
-    create policy "admin write class_levels" on class_levels for all using (true) with check (true);
+    create policy "admin write class_levels" on class_levels
+      for all
+      using ((auth.jwt() ->> 'role') = 'admin')
+      with check ((auth.jwt() ->> 'role') = 'admin');
   end if;
   if not exists (select 1 from pg_policies where tablename='subjects' and policyname='admin write subjects') then
-    create policy "admin write subjects" on subjects for all using (true) with check (true);
+    create policy "admin write subjects" on subjects
+      for all
+      using ((auth.jwt() ->> 'role') = 'admin')
+      with check ((auth.jwt() ->> 'role') = 'admin');
   end if;
   if not exists (select 1 from pg_policies where tablename='video_lessons' and policyname='admin write video_lessons') then
-    create policy "admin write video_lessons" on video_lessons for all using (true) with check (true);
+    create policy "admin write video_lessons" on video_lessons
+      for all
+      using ((auth.jwt() ->> 'role') = 'admin')
+      with check ((auth.jwt() ->> 'role') = 'admin');
   end if;
   if not exists (select 1 from pg_policies where tablename='worksheets' and policyname='admin write worksheets') then
-    create policy "admin write worksheets" on worksheets for all using (true) with check (true);
+    create policy "admin write worksheets" on worksheets
+      for all
+      using ((auth.jwt() ->> 'role') = 'admin')
+      with check ((auth.jwt() ->> 'role') = 'admin');
   end if;
 end $$;
 
@@ -110,16 +128,14 @@ end $$;
 -- 3. SEED DATA
 -- ────────────────────────────────────────────
 
--- Series
-insert into series (id, title, description, class_count, video_count, total_duration, color, badge) values
-  ('s1', 'Foundation Series',       'Build strong basics from Class 1 to 5 with fun interactive lessons', 5, 120, '80 hrs',  '#8B5CF6', 'Popular'),
-  ('s2', 'Middle School Series',    'Comprehensive coverage for Class 6 to 8, aligned with NCERT',        3, 210, '140 hrs', '#10B981', 'New'),
-  ('s3', 'Secondary Series',        'Focused preparation for Class 9 & 10 board exams',                   2, 180, '120 hrs', '#F59E0B', null),
-  ('s4', 'Senior Secondary Series', 'In-depth content for Class 11 & 12 with competitive exam focus',     2, 260, '180 hrs', '#2563EB', 'Premium'),
-  ('s5', 'Olympiad Series',         'Advanced problem-solving for Math & Science Olympiads',              5,  90, '60 hrs',  '#EF4444', null)
+insert into series (id, title, description, thumbnail, class_count, video_count, total_duration, color, badge) values
+  ('s1', 'Foundation Series',       'Build strong basics from Class 1 to 5 with fun interactive lessons', null, 5, 120, '80 hrs',  '#8B5CF6', 'Popular'),
+  ('s2', 'Middle School Series',    'Comprehensive coverage for Class 6 to 8, aligned with NCERT',        null, 3, 210, '140 hrs', '#10B981', 'New'),
+  ('s3', 'Secondary Series',        'Focused preparation for Class 9 & 10 board exams',                   null, 2, 180, '120 hrs', '#F59E0B', null),
+  ('s4', 'Senior Secondary Series', 'In-depth content for Class 11 & 12 with competitive exam focus',     null, 2, 260, '180 hrs', '#2563EB', 'Premium'),
+  ('s5', 'Olympiad Series',         'Advanced problem-solving for Math & Science Olympiads',              null, 5,  90, '60 hrs',  '#EF4444', null)
 on conflict (id) do nothing;
 
--- Classes
 insert into class_levels (id, series_id, title, subtitle, subject_count, color) values
   ('c1',  's1', 'Class 1',  'Beginner Level',   4, '#8B5CF6'),
   ('c2',  's1', 'Class 2',  'Elementary',        4, '#8B5CF6'),
@@ -135,7 +151,6 @@ insert into class_levels (id, series_id, title, subtitle, subject_count, color) 
   ('c12', 's4', 'Class 12', 'Board Exam Year',   5, '#2563EB')
 on conflict (id) do nothing;
 
--- Subjects
 insert into subjects (id, class_id, series_id, title, description, icon, color, video_count, worksheet_count) values
   ('sub1',  'c6',  's2', 'Mathematics',   'Algebra, Geometry, Numbers',               'calculate',  '#8B5CF6', 24, 12),
   ('sub2',  'c6',  's2', 'Science',       'Physics, Chemistry, Biology',              'science',    '#10B981', 20, 10),
@@ -151,23 +166,21 @@ insert into subjects (id, class_id, series_id, title, description, icon, color, 
   ('sub12', 'c10', 's3', 'Science',       'Chemical Reactions, Life Processes, Electricity','science','#10B981',30,15)
 on conflict (id) do nothing;
 
--- Video Lessons
 insert into video_lessons (id, subject_id, title, description, duration, video_url, video_type, chapter_number) values
-  ('v1', 'sub1', 'Introduction to Algebra',       'Learn the basics of algebraic expressions and variables',        '12:30', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'youtube', 1),
-  ('v2', 'sub1', 'Linear Equations',              'Solving simple and compound linear equations step by step',      '18:45', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'youtube', 2),
-  ('v3', 'sub1', 'Ratio and Proportion',           'Understanding ratios, rates and direct/inverse proportion',      '15:20', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'youtube', 3),
-  ('v4', 'sub1', 'Geometry Basics',               'Lines, angles and triangles fundamentals',                       '20:10', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'youtube', 4),
-  ('v5', 'sub1', 'Data Handling',                 'Bar graphs, pie charts and basic statistics',                    '14:55', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'youtube', 5),
-  ('v6', 'sub2', 'Motion and Measurement',         'Types of motion and basic units of measurement',                '16:00', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'youtube', 1),
-  ('v7', 'sub2', 'Food: Where Does it Come From?','Plant and animal sources of food, photosynthesis basics',        '13:40', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'youtube', 2)
+  ('v1', 'sub1', 'Introduction to Algebra',       'Learn the basics of algebraic expressions and variables',        '12:30', 'https://www.youtube.com/watch?v=REPLACE_WITH_REAL_VIDEO', 'youtube', 1),
+  ('v2', 'sub1', 'Linear Equations',              'Solving simple and compound linear equations step by step',      '18:45', 'https://www.youtube.com/watch?v=REPLACE_WITH_REAL_VIDEO', 'youtube', 2),
+  ('v3', 'sub1', 'Ratio and Proportion',           'Understanding ratios, rates and direct/inverse proportion',      '15:20', 'https://www.youtube.com/watch?v=REPLACE_WITH_REAL_VIDEO', 'youtube', 3),
+  ('v4', 'sub1', 'Geometry Basics',               'Lines, angles and triangles fundamentals',                       '20:10', 'https://www.youtube.com/watch?v=REPLACE_WITH_REAL_VIDEO', 'youtube', 4),
+  ('v5', 'sub1', 'Data Handling',                 'Bar graphs, pie charts and basic statistics',                    '14:55', 'https://www.youtube.com/watch?v=REPLACE_WITH_REAL_VIDEO', 'youtube', 5),
+  ('v6', 'sub2', 'Motion and Measurement',         'Types of motion and basic units of measurement',                '16:00', 'https://www.youtube.com/watch?v=REPLACE_WITH_REAL_VIDEO', 'youtube', 1),
+  ('v7', 'sub2', 'Food: Where Does it Come From?','Plant and animal sources of food, photosynthesis basics',        '13:40', 'https://www.youtube.com/watch?v=REPLACE_WITH_REAL_VIDEO', 'youtube', 2)
 on conflict (id) do nothing;
 
--- Worksheets
 insert into worksheets (id, subject_id, title, description, file_url, pages, topic) values
-  ('w1', 'sub1', 'Algebra Practice Sheet 1',    'Basic algebraic expressions and simplification',    'https://www.w3.org/WAI/WCAG21/Techniques/pdf/pdf-sample.pdf', 4, 'Algebra'),
-  ('w2', 'sub1', 'Linear Equations Worksheet',  '20 practice problems with solutions',               'https://www.w3.org/WAI/WCAG21/Techniques/pdf/pdf-sample.pdf', 6, 'Linear Equations'),
-  ('w3', 'sub1', 'Geometry Exercise Set',       'Angles, triangles and quadrilaterals problems',     'https://www.w3.org/WAI/WCAG21/Techniques/pdf/pdf-sample.pdf', 5, 'Geometry'),
-  ('w4', 'sub2', 'Science Activity Sheet 1',    'Observation-based activities for motion study',     'https://www.w3.org/WAI/WCAG21/Techniques/pdf/pdf-sample.pdf', 3, 'Motion')
+  ('w1', 'sub1', 'Algebra Practice Sheet 1',    'Basic algebraic expressions and simplification',    'REPLACE_WITH_REAL_PDF_URL', 4, 'Algebra'),
+  ('w2', 'sub1', 'Linear Equations Worksheet',  '20 practice problems with solutions',               'REPLACE_WITH_REAL_PDF_URL', 6, 'Linear Equations'),
+  ('w3', 'sub1', 'Geometry Exercise Set',       'Angles, triangles and quadrilaterals problems',     'REPLACE_WITH_REAL_PDF_URL', 5, 'Geometry'),
+  ('w4', 'sub2', 'Science Activity Sheet 1',    'Observation-based activities for motion study',     'REPLACE_WITH_REAL_PDF_URL', 3, 'Motion')
 on conflict (id) do nothing;
 
 -- ────────────────────────────────────────────
@@ -188,9 +201,13 @@ alter table deleted_users enable row level security;
 
 do $$ begin
   if not exists (select 1 from pg_policies where tablename='deleted_users' and policyname='admin read deleted_users') then
-    create policy "admin read deleted_users" on deleted_users for select using (true);
+    create policy "admin read deleted_users" on deleted_users
+      for select
+      using ((auth.jwt() ->> 'role') = 'admin');
   end if;
   if not exists (select 1 from pg_policies where tablename='deleted_users' and policyname='admin write deleted_users') then
-    create policy "admin write deleted_users" on deleted_users for insert with check (true);
+    create policy "admin write deleted_users" on deleted_users
+      for insert
+      with check ((auth.jwt() ->> 'role') = 'admin');
   end if;
 end $$;
